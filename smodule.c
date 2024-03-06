@@ -3,6 +3,8 @@
 #include <linux/netfilter.h>
 #include <linux/netfilter_ipv4.h>
 #include <linux/ip.h>
+#include <linux/tcp.h>
+#include <linux/udp.h>
 #include <linux/inet.h>
 
 static struct nf_hook_ops nfho;
@@ -25,6 +27,8 @@ const char *get_protocol_name(unsigned char protocol) {
 static unsigned int hook_func(void *priv, struct sk_buff *skb, const struct nf_hook_state *state)
 {
   struct iphdr *ip_header;
+  struct tcphdr *tcp_header;
+  struct udphdr *udp_header;
 
     // 从数据包中获取 IP 头部信息
   ip_header = ip_hdr(skb);
@@ -36,10 +40,18 @@ static unsigned int hook_func(void *priv, struct sk_buff *skb, const struct nf_h
         return NF_ACCEPT;
     }
 
+  if(ip_header->protocol == IPPROTO_TCP){
+    tcp_header = tcp_hdr(skb);
+    printk(KERN_INFO "Source IP: %pI4, Destination IP: %pI4 DstPort:%d Protocol:%s len: %d\n", &ip_header->saddr, &ip_header->daddr, ntohs(tcp_header->dest), get_protocol_name(ip_header->protocol), ip_header->tot_len);
 
-  printk(KERN_INFO "Source IP: %pI4, Destination IP: %pI4 Protocol:%s len: %d\n", &ip_header->saddr, &ip_header->daddr, get_protocol_name(ip_header->protocol), ip_header->tot_len);
+   
+  }else if(ip_header->protocol == IPPROTO_UDP) {
+    udp_header = udp_hdr(skb);
+    printk(KERN_INFO "Source IP: %pI4, Destination IP: %pI4 DstPort:%d Protocol:%s len: %d\n", &ip_header->saddr, &ip_header->daddr, ntohs(udp_header->dest), get_protocol_name(ip_header->protocol), ip_header->tot_len);
+   }
 
 
+  
     // 返回 NF_ACCEPT 表示接受数据包
   return NF_ACCEPT;
 }
